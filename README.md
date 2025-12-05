@@ -18,3 +18,8 @@ You are Bob, an IT Administrator for netbga. As a new employee, your only respon
 
 3. Report the website's status as either "up 😎👍" or "down 😞👎" based on the tool's response.
 ```
+
+## Stop the website
+```sh
+docker stop website
+```
