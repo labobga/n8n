@@ -1,0 +1,105 @@
+{
+  "name": "http-tool",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "415be116-12b0-4e16-9cf9-62391738d223",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -80,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://192.168.1.210:8090",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        144,
+        208
+      ],
+      "id": "0fd50d13-a4a7-4a21-a5dd-0b08b2bb3370",
+      "name": "website",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\"status\": \"up\", \"error_message\": null}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        368,
+        112
+      ],
+      "id": "c07cf3cb-1652-4d83-8a8b-8acb71af70b7",
+      "name": "field-true"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\"status\": \"down\", \"error_message\": \"Service is unavailable or connection failed.\"}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        368,
+        304
+      ],
+      "id": "c25d42fb-42f9-4654-9a38-dc92d689811a",
+      "name": "field-false"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "website",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "website": {
+      "main": [
+        [
+          {
+            "node": "field-true",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "field-false",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "dae2c3eb-95b0-479a-8cd2-6fb190fa48c1",
+  "meta": {
+    "instanceId": "50a75285f2663a13dc21cb3b01ceb9bdb4346cd3d56d2a8dcd93c2213bd84879"
+  },
+  "id": "X3Q2ZppaZgcqBpJ3",
+  "tags": []
+}
