@@ -1,0 +1,170 @@
+{
+  "name": "form-config-generator-to-formendig",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Switch config-file generator",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "hostname",
+              "placeholder": "SWITCH-LABO",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "IP_Address",
+              "placeholder": "192.168.1.10",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "switch_type",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "core"
+                  },
+                  {
+                    "option": "access"
+                  }
+                ]
+              },
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "appendAttribution": false,
+          "path": "file-generator"
+        }
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.3,
+      "position": [
+        0,
+        16
+      ],
+      "name": "On form submission",
+      "id": "b8476df3-4694-424f-9d5a-8ac565c198c5",
+      "webhookId": "cd92cf07-3803-47b8-a7c5-ba6b74cf6595"
+    },
+    {
+      "parameters": {
+        "jsCode": "const ip = $json[\"IP_Address\"];\nconst ipv4Regex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/;\nif (!ipv4Regex.test(ip)) throw new Error('IP invalide: ' + ip);\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        16
+      ],
+      "name": "Check-IP-format",
+      "id": "d9073b1f-f76f-4d82-8393-ed6e89f87f41"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Récupération des données du formulaire\nconst hostname = $json.hostname;\nconst IP_Address = $json.IP_Address;\nconst type = $json.switch_type;\n\n// Templates de configuration\nconst templates = {\n  access: `\nhostname {{hostname}}\n!\ninterface Vlan1\n ip address {{IP_Address}} 255.255.255.0\n no shutdown\n!\nspanning-tree portfast default\n!\n  `,\n  core: `\nhostname {{hostname}}\n!\ninterface Vlan10\n ip address {{IP_Address}} 255.255.255.0\n!\nip routing\n!\nrouter ospf 1\n network {{IP_Address}} 0.0.0.255 area 0\n!\n  `\n};\n\nreturn [\n  {\n    json: {\n      hostname,\n      IP_Address,\n      switch_type: type,\n      template: templates[type]\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        368,
+        16
+      ],
+      "id": "3374c6f0-6453-4601-b7a5-8b8e75e9d761",
+      "name": "template_config"
+    },
+    {
+      "parameters": {
+        "jsCode": "let config = $json.template;\n\n// Remplacements simples\nconfig = config.replace(/{{hostname}}/g, $json.hostname);\nconfig = config.replace(/{{IP_Address}}/g, $json.IP_Address);\n\n// Convertir les retours à la ligne pour affichage dans le Form\nconst htmlConfig = config.replace(/\\n/g, \"<br>\");\n\nreturn [\n  {\n    json: {\n      hostname: $json.hostname,\n      config,       // version originale (utile si tu veux générer un fichier)\n      htmlConfig    // version formatée pour affichage\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        544,
+        16
+      ],
+      "id": "4a49077d-4133-472e-9c25-bcac35886afe",
+      "name": "generate_config"
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "respondWith": "showText",
+        "responseText": "={{ $json.htmlConfig }}"
+      },
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.3,
+      "position": [
+        752,
+        16
+      ],
+      "id": "ca4523e4-dc71-40bd-91f8-314872514ed4",
+      "name": "Form-ending",
+      "webhookId": "3c89cd3c-63e8-4b4c-a3b2-f876384cff6d",
+      "notesInFlow": false
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Check-IP-format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check-IP-format": {
+      "main": [
+        [
+          {
+            "node": "template_config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "template_config": {
+      "main": [
+        [
+          {
+            "node": "generate_config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "generate_config": {
+      "main": [
+        [
+          {
+            "node": "Form-ending",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Form-ending": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "bdf6e8e3-0564-4db4-9bad-bd13ebd39353",
+  "meta": {
+    "instanceId": "50a75285f2663a13dc21cb3b01ceb9bdb4346cd3d56d2a8dcd93c2213bd84879"
+  },
+  "id": "5h40irVhzdRdBIJW",
+  "tags": []
+}
