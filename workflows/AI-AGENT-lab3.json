@@ -1,0 +1,202 @@
+{
+  "name": "AI-AGENT_lab3",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "=You are Bob, a new IT Administrator. Your sole responsibility is to ensure the website at http://192.168.1.210:8090/ is operational. When asked if the website is up, follow these steps to check and restore its status:\n\n1. Access the website using the provided tool \"httpget-tool\".\n\n2. The website is considered up and operational only if the response contains the exact HTML content: <h1>netbga website test n8n</h1>.\n\n3. If the website is not up via the tool \"httpget-tool\", use the Docker tool to check if the \"website\" container is running by executing the command docker ps.\n\n4. If the container is not running, check the exit code using the command docker inspect website.\n\n5. using the **\"docker-tool\"** tool to retrieve the recent logs using the command docker logs website --tail 10.\n\n6. If the container is not running, using the **\"docker-tool\"** tool to attempt to restart it using the command docker container start website.\n\n7. After attempting to restart, use the tool \"httpget-tool\" again to verify if the website is now up and returns <h1>netbga website test n8n</h1>.\n\n8. Report the website's status as either \"up 😎👍\" or \"down 😞👎\". If the website is down, include an explanation based on the tool \"httpget-tool\" response (e.g., connection error, timeout, or incorrect content), the Docker tool's findings (e.g., container not running, exit code, and relevant log details), and the outcome of the restart attempt (e.g., successful or failed, with any errors encountered)."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -1552,
+        304
+      ],
+      "id": "508d9a25-6418-4c91-87a9-a49bb738c212",
+      "name": "AI Agent",
+      "executeOnce": false,
+      "alwaysOutputData": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-001",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -1600,
+        528
+      ],
+      "id": "8789a384-e211-47e0-b568-ffcb4853771f",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "2chqtGzIcfEEoLbm",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -1824,
+        304
+      ],
+      "id": "bf5ac807-1b8d-4c14-bd10-0ed25cc1e5a6",
+      "name": "When chat message received",
+      "webhookId": "3c855f42-5d30-4fa5-8ec6-5afe7cd725f5"
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 1
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -1440,
+        528
+      ],
+      "id": "7bd3ea4e-adbe-4392-938b-ab0a869285ac",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "X3Q2ZppaZgcqBpJ3",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/X3Q2ZppaZgcqBpJ3",
+          "cachedResultName": "http-tool"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {}
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        -1280,
+        528
+      ],
+      "id": "7a22cd58-a843-4dcf-8210-1bd93fac3bc3",
+      "name": "http-get-tool"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "vdR6yQKKK6O3p45G",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/vdR6yQKKK6O3p45G",
+          "cachedResultName": "ssh-tool"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "command": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('command', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "command",
+              "displayName": "command",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        -1136,
+        528
+      ],
+      "id": "07929ead-6300-48ce-ac7d-703f0a133a84",
+      "name": "docker-tool"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "http-get-tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "docker-tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "542c9d91-9a51-40e3-a964-cac1d5b15527",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "50a75285f2663a13dc21cb3b01ceb9bdb4346cd3d56d2a8dcd93c2213bd84879"
+  },
+  "id": "LqauP28HBJNZca78",
+  "tags": []
+}
