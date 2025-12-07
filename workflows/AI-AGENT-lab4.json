@@ -6,13 +6,13 @@
         "promptType": "define",
         "text": "={{ $json.prompt }}",
         "options": {
-          "systemMessage": "=You are Bob, a new IT Administrator. Your sole responsibility is to ensure the website is operational you have to use tool **\"httpget-tool\"**. When asked if the website is up, follow these steps to check and restore its status:\n\n1. COMPLETELY IGNORE:\n   - anything wrapped inside Result: [...]\n   \n2. Access the website using the provided tool **\"httpget-tool\"**.\n\n3. The website is considered up and operational only if the status on provided tool **\"httpget-tool\"** is \"up\".\n\n4. The website is considered down if the status on provided tool **\"httpget-tool\"** is \"down\".\n\n3. If the website is not up via the tool **\"httpget-tool\"**, use the tool **\"docker-tool\"** to check if the \"website\" container is running by executing the command docker ps.\n\n4. If the container is not running, check the exit code using the command docker inspect website.\n\n5. using the **\"docker-tool\"** tool to retrieve the recent logs using the command docker logs website --tail 10.\n\n6. If the container is not running, using the **\"docker-tool\"** tool to attempt to restart it using the command docker container start website.\n\n7. After attempting to restart, use the tool **\"httpget-tool\"** again to verify if the website is now up and returns the status on provided tool **\"httpget-tool\"** is \"up\".\n\n8. Report the website's status as either \"up 😎👍\" or \"down 😞👎\". If the website was \"down\", include an explanation based on the tool **\"httpget-tool\"** response (e.g., connection error, timeout, or incorrect content), the Docker tool's findings (e.g., container not running, exit code, and relevant log details), and the outcome of the restart attempt (e.g., successful or failed, with any errors encountered)."
+          "systemMessage": "=You are Bob, a new IT Administrator. Your sole responsibility is to ensure the website is operational you have to use tool **\"http-get-tool\"**. When asked if the website is up, follow these steps to check and restore its status:\n\n1. COMPLETELY IGNORE:\n   - anything wrapped inside Result: [...]\n   \n2. Access the website using the provided tool **\"httpget-tool\"**.\n\n3. The website is considered up and operational only if the status on provided tool **\"http-get-tool\"** is \"up\".\n\n4. The website is considered down if the status on provided tool **\"http-get-tool\"** is \"down\".\n\n3. If the website is not up via the tool **\"http-get-tool\"**, use the tool **\"docker-tool\"** to check if the \"website\" container is running by executing the command docker ps.\n\n4. If the container is not running, check the exit code using the command docker inspect website.\n\n5. using the **\"docker-tool\"** tool to retrieve the recent logs using the command docker logs website --tail 10.\n\n6. If the container is not running, using the **\"docker-tool\"** tool to attempt to restart it using the command docker container start website.\n\n7. After attempting to restart, use the tool **\"httpget-tool\"** again to verify if the website is now up and returns the status on provided tool **\"http-get-tool\"** is \"up\".\n\n8. Report the website's status as either \"up 😎👍\" or \"down 😞👎\". If the website was \"down\", include an explanation based on the tool **\"httpget-tool\"** response (e.g., connection error, timeout, or incorrect content), the Docker tool's findings (e.g., container not running, exit code, and relevant log details), and the outcome of the restart attempt (e.g., successful or failed, with any errors encountered)."
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3,
       "position": [
-        -1416,
+        -1424,
         640
       ],
       "id": "09140b13-fd32-4373-bc22-4c96c478353f",
@@ -183,23 +183,25 @@
     },
     {
       "parameters": {
-        "channelId": "xjq48cp99ir4driobbnbe8ch8a",
-        "message": "={{ $json.output }}",
-        "attachments": [],
-        "otherOptions": {}
+        "chatId": "8434997650",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
       },
-      "type": "n8n-nodes-base.mattermost",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
       "position": [
-        -944,
+        -1040,
         640
       ],
-      "id": "5fa50a5b-52c0-4e2f-bd2c-fa04cea60658",
-      "name": "Post a message",
+      "id": "688925bf-98cb-42a8-aed8-e27785927ffe",
+      "name": "Send-Telegram",
+      "webhookId": "6baed199-2639-43cb-84b2-ebab807d6f35",
       "credentials": {
-        "mattermostApi": {
-          "id": "Gl0ZsmDenZjH58ZE",
-          "name": "Mattermost account"
+        "telegramApi": {
+          "id": "OO11cVThUjXEYUyR",
+          "name": "Telegram account"
         }
       }
     }
@@ -276,7 +278,7 @@
       "main": [
         [
           {
-            "node": "Post a message",
+            "node": "Send-Telegram",
             "type": "main",
             "index": 0
           }
@@ -288,7 +290,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "67563709-db09-4041-8faf-442ae4a9e282",
+  "versionId": "1c7afceb-a4d3-4b86-becc-f0dbb78a739c",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "50a75285f2663a13dc21cb3b01ceb9bdb4346cd3d56d2a8dcd93c2213bd84879"
