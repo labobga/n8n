@@ -12,6 +12,8 @@ Use this token to access the HTTP API: \
 8581479525:AAHG0guy0oEqGdkKoT1liPkbs44TGGjltDU \
 Keep your token secure and store it safely, it can be used by anyone to control your bot.
 
+Chat ID: 8434997650
+
 For a description of the Bot API, see this page: https://core.telegram.org/bots/api
 
 ## Start a simple web container to test
