@@ -1,0 +1,209 @@
+{
+  "name": "config-file-compliance",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Switch config-file generator",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "hostname",
+              "placeholder": "SWITCH-LABO",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "file",
+              "fieldType": "file",
+              "multipleFiles": false,
+              "acceptFileTypes": ".txt, .cfg",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "compliance-checks",
+              "fieldType": "checkbox",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "ssh"
+                  },
+                  {
+                    "option": "password-length"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "options": {
+          "appendAttribution": false,
+          "path": "file-generator"
+        }
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.3,
+      "position": [
+        0,
+        16
+      ],
+      "name": "On form submission",
+      "id": "d335f492-0735-4a87-90f6-475918d682f6",
+      "webhookId": "45e8b609-a0a8-485e-99a9-a0a286276564"
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "htmlContent",
+        "binaryPropertyName": "=datafile",
+        "options": {
+          "fileName": "={{ $json.fileName }}"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        848,
+        16
+      ],
+      "id": "8d383f24-c729-44d3-993b-ee173b09cb7e",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "respondWith": "returnBinary",
+        "completionTitle": "file generated and downloaded on your folder \"downloads\"",
+        "inputDataFieldName": "datafile",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.3,
+      "position": [
+        1056,
+        16
+      ],
+      "id": "9c995cd2-8ed6-4bb9-b857-836e8e451f03",
+      "name": "Form",
+      "webhookId": "8d29e8cb-68ed-4d44-9ae2-2350865c90b1"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "binaryPropertyName": "file",
+        "destinationKey": "config_text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        16
+      ],
+      "id": "d035af8f-2c95-43c6-af5e-b626a5d4e8a7",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Récupère le texte de configuration\nconst configText = $input.first().json.config_text;\n\n// --- Tentative d'extraction du nom d'hôte ---\nconst hostnameMatch = configText.match(/^hostname\\s+(\\S+)/m);\nconst switchName = hostnameMatch ? hostnameMatch[1] : \"Nom_Inconnu\";\n\nlet complianceChecks = [];\n\n// --- Règle 1: SSH Activé (VTY Lines) ---\nconst isSSHEnabled = configText.includes(\"transport input ssh\");\ncomplianceChecks.push({\n    rule: \"SSH Activé\",\n    status: isSSHEnabled ? \"CONFORME\" : \"NON CONFORME\",\n    details: isSSHEnabled ? \"Présence de 'transport input ssh' sur les lignes VTY.\" : \"SSH non configuré ou Telnet actif.\"\n});\n\n// --- Règle 2: Service Password Encryption ---\nconst isServiceEncrypted = configText.includes(\"service password-encryption\");\ncomplianceChecks.push({\n    rule: \"Encryption des mots de passe faibles\",\n    status: isServiceEncrypted ? \"CONFORME\" : \"NON CONFORME\",\n    details: isServiceEncrypted ? \"La commande 'service password-encryption' est présente.\" : \"Les mots de passe faibles ne sont pas chiffrés.\"\n});\n\n// Ajoutez ici toutes vos autres règles...\n\n// Calcul du statut global\nconst overallStatus = complianceChecks.every(check => check.status === \"CONFORME\") ? \"CONFORME\" : \"NON CONFORME\";\n\nreturn [{\n    json: {\n        switchName: switchName,\n        overallStatus: overallStatus,\n        complianceResults: complianceChecks\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        16
+      ],
+      "id": "70327715-5c77-46a2-a5c7-f137e8c35a7a",
+      "name": "Compliance_check"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Nous utilisons une variable let pour pouvoir changer sa valeur.\nlet inputItem;\nconst inputJson = $input.item.json; // C'est le contenu JSON de l'élément d'entrée\n\n// LOGIQUE DE SÉCURITÉ : Tente de récupérer l'objet unique.\nif (Array.isArray(inputJson) && inputJson.length > 0) {\n    inputItem = inputJson[0];\n} else if (inputJson && typeof inputJson === 'object') {\n    inputItem = inputJson;\n} else {\n    // Si la donnée est invalide, on retourne un tableau vide pour ne pas faire planter le workflow.\n    return []; \n}\n\n// ----------------------------------------------------------------\n// Définition de constantes sécurisées (pour les propriétés manquantes)\nconst switchName = inputItem.switchName || 'N/A';\nconst overallStatus = inputItem.overallStatus || 'STATUS MANQUANT';\nconst complianceResults = inputItem.complianceResults || [];\n// ----------------------------------------------------------------\n\n// Début du HTML - Structure de base et styles (optionnel)\nlet htmlContent = `\n<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Rapport de Conformité</title>\n    <style>\n        body { font-family: Arial, sans-serif; line-height: 1.6; padding: 20px; }\n        .report-container { border: 1px solid #ddd; padding: 15px; border-radius: 5px; max-width: 800px; margin: 20px auto; }\n        h1, h2 { color: #333; }\n        .status-conforme { color: green; font-weight: bold; }\n        .status-non-conforme { color: red; font-weight: bold; } \n        table { width: 100%; border-collapse: collapse; margin-top: 10px; }\n        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }\n        th { background-color: #f2f2f2; }\n    </style>\n</head>\n<body>\n    <div class=\"report-container\">\n        <h1>Rapport de Conformité de l'Équipement</h1>\n        \n        <h2>Statut Global</h2>\n        <p><strong>Nom de l'équipement :</strong> ${switchName}</p>\n        \n        <p><strong>Statut Global :</strong> <span class=\"status-${overallStatus.toLowerCase().replace(' ', '-')}\">${overallStatus}</span></p>\n\n        <h2>Détails de la Conformité</h2>\n        <table>\n            <thead>\n                <tr>\n                    <th>Règle</th>\n                    <th>Statut</th>\n                    <th>Détails</th>\n                </tr>\n            </thead>\n            <tbody>\n`;\n\n// Itération sur les résultats de conformité\ncomplianceResults.forEach(result => {\n    const ruleStatus = result.status || 'STATUS INCONNU';\n    const statusClass = ruleStatus.toLowerCase().replace(' ', '-');\n    const ruleDetails = result.details || 'Aucun détail fourni.';\n    \n    htmlContent += `\n                <tr>\n                    <td>${result.rule || 'Règle inconnue'}</td>\n                    <td><span class=\"status-${statusClass}\">${ruleStatus}</span></td>\n                    <td>${ruleDetails}</td>\n                </tr>\n    `;\n});\n\n// Fin du HTML\nhtmlContent += `\n            </tbody>\n        </table>\n    </div>\n</body>\n</html>\n`;\n\n// ----------------------------------------------------------------\n// CORRECTION DU FORMAT DE SORTIE : Tout est dans la propriété 'json'.\n// C'est le format le plus compatible pour éviter l'erreur \"Invalid output format\".\nreturn [{ \n    json: {\n        fileName: `${switchName}_Rapport_Conformite.html`,\n        contentType: 'text/html',\n        htmlContent: htmlContent // La chaîne HTML complète est ici.\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        16
+      ],
+      "id": "ae45fa59-5c89-483f-a483-38583dc954c5",
+      "name": "Convert to html"
+    }
+  ],
+  "pinData": {
+    "Convert to html": [
+      {
+        "json": {
+          "fileName": "sw1_Rapport_Conformite.html",
+          "contentType": "text/html",
+          "htmlContent": "\n<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Rapport de Conformité</title>\n    <style>\n        body { font-family: Arial, sans-serif; line-height: 1.6; padding: 20px; }\n        .report-container { border: 1px solid #ddd; padding: 15px; border-radius: 5px; max-width: 800px; margin: 20px auto; }\n        h1, h2 { color: #333; }\n        .status-conforme { color: green; font-weight: bold; }\n        .status-non-conforme { color: red; font-weight: bold; } \n        table { width: 100%; border-collapse: collapse; margin-top: 10px; }\n        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }\n        th { background-color: #f2f2f2; }\n    </style>\n</head>\n<body>\n    <div class=\"report-container\">\n        <h1>Rapport de Conformité de l'Équipement</h1>\n        \n        <h2>Statut Global</h2>\n        <p><strong>Nom de l'équipement :</strong> sw1</p>\n        \n        <p><strong>Statut Global :</strong> <span class=\"status-conforme\">CONFORME</span></p>\n\n        <h2>Détails de la Conformité</h2>\n        <table>\n            <thead>\n                <tr>\n                    <th>Règle</th>\n                    <th>Statut</th>\n                    <th>Détails</th>\n                </tr>\n            </thead>\n            <tbody>\n\n                <tr>\n                    <td>SSH Activé</td>\n                    <td><span class=\"status-conforme\">CONFORME</span></td>\n                    <td>Présence de 'transport input ssh' sur les lignes VTY.</td>\n                </tr>\n    \n                <tr>\n                    <td>Encryption des mots de passe faibles</td>\n                    <td><span class=\"status-conforme\">CONFORME</span></td>\n                    <td>La commande 'service password-encryption' est présente.</td>\n                </tr>\n    \n            </tbody>\n        </table>\n    </div>\n</body>\n</html>\n"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Compliance_check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compliance_check": {
+      "main": [
+        [
+          {
+            "node": "Convert to html",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to html": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "3e768771-7112-4810-8851-41055b9634c7",
+  "meta": {
+    "instanceId": "50a75285f2663a13dc21cb3b01ceb9bdb4346cd3d56d2a8dcd93c2213bd84879"
+  },
+  "id": "xuArImqir208oa6t",
+  "tags": []
+}
