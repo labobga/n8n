@@ -3,14 +3,9 @@
   "nodes": [
     {
       "parameters": {
-        "formTitle": "Switch config-file generator",
+        "formTitle": "Configuration-file Compliance Check",
         "formFields": {
           "values": [
-            {
-              "fieldLabel": "Date",
-              "fieldType": "date",
-              "requiredField": true
-            },
             {
               "fieldLabel": "file",
               "fieldType": "file",
@@ -36,7 +31,7 @@
         },
         "options": {
           "appendAttribution": false,
-          "path": "file-generator"
+          "path": "config-file-compliance"
         }
       },
       "type": "n8n-nodes-base.formTrigger",
@@ -225,7 +220,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "1e2b5b19-09d0-4dea-9c0f-2e1f1a70776a",
+  "versionId": "6eb9e457-eebf-42a5-adf9-8319c8403c08",
   "meta": {
     "instanceId": "50a75285f2663a13dc21cb3b01ceb9bdb4346cd3d56d2a8dcd93c2213bd84879"
   },
