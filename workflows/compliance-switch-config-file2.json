@@ -1,0 +1,234 @@
+{
+  "name": "config-file-compliance-2",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Switch config-file generator",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "hostname",
+              "placeholder": "SWITCH-LABO",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "file",
+              "fieldType": "file",
+              "multipleFiles": false,
+              "acceptFileTypes": ".txt, .cfg",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "compliance-checks",
+              "fieldType": "checkbox",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "ssh"
+                  },
+                  {
+                    "option": "password-length"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "options": {
+          "appendAttribution": false,
+          "path": "file-generator"
+        }
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.3,
+      "position": [
+        -272,
+        -320
+      ],
+      "name": "On form submission",
+      "id": "297c5722-df56-4a9f-84cc-4138dab0d88d",
+      "webhookId": "619f61dc-45a0-4bec-9736-b67b98b1edba"
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "htmlContent",
+        "binaryPropertyName": "=datafile",
+        "options": {
+          "fileName": "={{ $json.fileName }}"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        848,
+        -320
+      ],
+      "id": "b91d021e-3c31-4a49-a920-01c5657996db",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "respondWith": "returnBinary",
+        "completionTitle": "file generated and downloaded on your folder \"downloads\"",
+        "inputDataFieldName": "datafile",
+        "limitWaitTime": true,
+        "resumeAmount": 2,
+        "resumeUnit": "minutes",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.3,
+      "position": [
+        1072,
+        -320
+      ],
+      "id": "96086d9d-ee0e-4002-84e9-369d66cd768d",
+      "name": "Form",
+      "webhookId": "28e94c0d-9674-4c66-bd78-a43317a466a0",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "binaryPropertyName": "file",
+        "destinationKey": "config_text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        -48,
+        -320
+      ],
+      "id": "6832fb49-adda-47a1-a971-410678a6aa71",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Récupère le texte de configuration (on suppose qu'il est toujours dans le premier input)\nconst configText = $input.first().json.config_text;\n\n// *** 1. RÉCUPÉRATION DYNAMIQUE CORRIGÉE DES RÈGLES ***\n// Accès à la propriété 'compliance_rules' du premier élément d'entrée\n// qui provient du node Set Variables.\nconst rules = $input.first().json.compliance_rules; \n// Si le node Set Variables n'est pas l'input direct, utilisez :\n// const rules = $node[\"Règles_Conformite_Config\"].first().json.compliance_rules;\n\n\n// --- Tentative d'extraction du nom d'hôte ---\nconst hostnameMatch = $('Extract from File').first().json.config_text.match(/^hostname\\s+(\\S+)/m);\nconst switchName = hostnameMatch ? hostnameMatch[1] : \"Nom_Inconnu\";\n\nlet complianceChecks = [];\n\n// *** 2. ITÉRATION ET VÉRIFICATION DYNAMIQUE DES RÈGLES ***\nfor (const rule of rules) {\n    // Utilisation de rule.regex pour la vérification\n    const isConform = $('Extract from File').first().json.config_text.includes(rule.regex);\n    const status = isConform ? \"CONFORME\" : \"NON CONFORME\";\n    const details = isConform ? rule.details_conforme : rule.details_non_conforme;\n\n    complianceChecks.push({\n        rule: rule.name,\n        status: status,\n        details: details\n    });\n}\n\n// Calcul du statut global\nconst overallStatus = complianceChecks.every(check => check.status === \"CONFORME\") ? \"CONFORME\" : \"NON CONFORME\";\n\nreturn [{\n    json: {\n        switchName: switchName,\n        overallStatus: overallStatus,\n        complianceResults: complianceChecks\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        384,
+        -320
+      ],
+      "id": "c1ff5e2a-31b5-45f7-b3c9-866804b204f0",
+      "name": "Compliance_check"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Nous utilisons une variable let pour pouvoir changer sa valeur.\nlet inputItem;\nconst inputJson = $input.item.json; // C'est le contenu JSON de l'élément d'entrée\n\n// LOGIQUE DE SÉCURITÉ : Tente de récupérer l'objet unique.\nif (Array.isArray(inputJson) && inputJson.length > 0) {\n    inputItem = inputJson[0];\n} else if (inputJson && typeof inputJson === 'object') {\n    inputItem = inputJson;\n} else {\n    // Si la donnée est invalide, on retourne un tableau vide pour ne pas faire planter le workflow.\n    return []; \n}\n\n// ----------------------------------------------------------------\n// Définition de constantes sécurisées (pour les propriétés manquantes)\nconst switchName = inputItem.switchName || 'N/A';\nconst overallStatus = inputItem.overallStatus || 'STATUS MANQUANT';\nconst complianceResults = inputItem.complianceResults || [];\n// ----------------------------------------------------------------\n\n// Début du HTML - Structure de base et styles (optionnel)\nlet htmlContent = `\n<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Rapport de Conformité</title>\n    <style>\n        body { font-family: Arial, sans-serif; line-height: 1.6; padding: 20px; }\n        .report-container { border: 1px solid #ddd; padding: 15px; border-radius: 5px; max-width: 800px; margin: 20px auto; }\n        h1, h2 { color: #333; }\n        .status-conforme { color: green; font-weight: bold; }\n        .status-non-conforme { color: red; font-weight: bold; } \n        table { width: 100%; border-collapse: collapse; margin-top: 10px; }\n        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }\n        th { background-color: #f2f2f2; }\n    </style>\n</head>\n<body>\n    <div class=\"report-container\">\n        <h1>Rapport de Conformité de l'Équipement</h1>\n        \n        <h2>Statut Global</h2>\n        <p><strong>Nom de l'équipement :</strong> <strong class=\"status-conforme\">${switchName}</strong></p>\n        \n        <p><strong>Statut Global :</strong> <span class=\"status-${overallStatus.toLowerCase().replace(' ', '-')}\">${overallStatus}</span></p>\n\n        <h2>Détails de la Conformité</h2>\n        <table>\n            <thead>\n                <tr>\n                    <th>Règle</th>\n                    <th>Statut</th>\n                    <th>Détails</th>\n                </tr>\n            </thead>\n            <tbody>\n`;\n\n// Itération sur les résultats de conformité\ncomplianceResults.forEach(result => {\n    const ruleStatus = result.status || 'STATUS INCONNU';\n    const statusClass = ruleStatus.toLowerCase().replace(' ', '-');\n    const ruleDetails = result.details || 'Aucun détail fourni.';\n    \n    htmlContent += `\n                <tr>\n                    <td>${result.rule || 'Règle inconnue'}</td>\n                    <td><span class=\"status-${statusClass}\">${ruleStatus}</span></td>\n                    <td>${ruleDetails}</td>\n                </tr>\n    `;\n});\n\n// Fin du HTML\nhtmlContent += `\n            </tbody>\n        </table>\n    </div>\n</body>\n</html>\n`;\n\n// ----------------------------------------------------------------\n// CORRECTION DU FORMAT DE SORTIE : Tout est dans la propriété 'json'.\n// C'est le format le plus compatible pour éviter l'erreur \"Invalid output format\".\nreturn [{ \n    json: {\n        fileName: `${switchName}_Rapport_Conformite.html`,\n        contentType: 'text/html',\n        htmlContent: htmlContent // La chaîne HTML complète est ici.\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        608,
+        -320
+      ],
+      "id": "0ae12199-62da-44fb-b01f-b58cce14a4b2",
+      "name": "Convert to html"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"compliance_rules\": [\n    {\n      \"name\": \"SSH Activé\",\n      \"regex\": \"transport input ssh\",\n      \"details_conforme\": \"Connexions ssh autorisées\",\n      \"details_non_conforme\": \"SSH non configuré ou Telnet actif.\"\n    },\n    {\n      \"name\": \"Encryption des mots de passe\",\n      \"regex\": \"service password-encryption\",\n      \"details_conforme\": \"Le chiffrement des mots de passe est activé\",\n      \"details_non_conforme\": \"Les mots de passe faibles ne sont pas chiffrés.\"\n    },\n    {\n      \"name\": \"Enable secret\",\n      \"regex\": \"enable secret 9\",\n      \"details_conforme\": \"La commande 'enable secret 9' est présente.\",\n      \"details_non_conforme\": \"Le chiffrement de enable est conforme aux exigences\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "f59d7fa0-5751-453d-969b-02015099a2ff",
+      "name": "Set Variables",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        160,
+        -320
+      ],
+      "typeVersion": 3.3
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Set Variables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compliance_check": {
+      "main": [
+        [
+          {
+            "node": "Convert to html",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to html": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Form": {
+      "main": [
+        []
+      ]
+    },
+    "Set Variables": {
+      "main": [
+        [
+          {
+            "node": "Compliance_check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "5544c27d-5398-4914-a460-f2ead3518579",
+  "meta": {
+    "instanceId": "50a75285f2663a13dc21cb3b01ceb9bdb4346cd3d56d2a8dcd93c2213bd84879"
+  },
+  "id": "x275aDP98Sc17kax",
+  "tags": []
+}
