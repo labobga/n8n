@@ -1,0 +1,267 @@
+{
+  "name": "website-control",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "website control",
+        "formDescription": "website control",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "website control",
+              "fieldType": "checkbox",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "start"
+                  },
+                  {
+                    "option": "stop"
+                  }
+                ]
+              },
+              "limitSelection": "exact",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "appendAttribution": false,
+          "path": "website-control"
+        }
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.3,
+      "position": [
+        -240,
+        208
+      ],
+      "id": "30dfe20a-6454-442c-be27-a374b5c98d44",
+      "name": "On form submission",
+      "webhookId": "fa244c72-8b99-4796-8e29-3cd346863f1e"
+    },
+    {
+      "parameters": {
+        "command": "=docker {{ $json['website control'][0] }}  website"
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        -16,
+        208
+      ],
+      "id": "477dc3be-c076-42af-8512-5d47edfbabe7",
+      "name": "website-control",
+      "credentials": {
+        "sshPassword": {
+          "id": "bg1XJa9ZmdW0MzRl",
+          "name": "ssh_n8n"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "http://192.168.1.210:8090",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        208,
+        208
+      ],
+      "id": "5196fd19-1138-4e9a-966f-bdaeb3a8e273",
+      "name": "website",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\"status\": \"up\", \"error_message\": null}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        656,
+        112
+      ],
+      "id": "b037b21c-9f3a-4324-bbe1-fd0ec0813344",
+      "name": "field-true"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\"status\": \"down\", \"error_message\": \"Service is unavailable or connection failed.\"}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        656,
+        304
+      ],
+      "id": "b06b86bc-6235-456f-a64e-2f72f9283548",
+      "name": "field-false"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "80bfb0b9-9d8d-42f6-b68c-844b372b35c8",
+              "leftValue": "={{ $json.error.name }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        432,
+        208
+      ],
+      "id": "05c03392-2197-471b-a748-5a12ab2ddf4b",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "website status",
+        "completionMessage": "=website is {{ $json.status }} 😎👍",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.3,
+      "position": [
+        880,
+        112
+      ],
+      "id": "4357e683-0dfc-4f0d-a7f3-96f60b1de255",
+      "name": "Form-up",
+      "webhookId": "c8c385b0-d738-4dc8-9650-947cd151d609"
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "website status",
+        "completionMessage": "=website is {{ $json.status }} 😞👎",
+        "limitWaitTime": true,
+        "resumeAmount": 0.5,
+        "resumeUnit": "minutes",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.3,
+      "position": [
+        880,
+        304
+      ],
+      "id": "d574ce9b-67ff-49bb-9549-2eb224cf809f",
+      "name": "Form-down",
+      "webhookId": "c8c385b0-d738-4dc8-9650-947cd151d609"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "website-control",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "website-control": {
+      "main": [
+        [
+          {
+            "node": "website",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "website": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "field-true": {
+      "main": [
+        [
+          {
+            "node": "Form-up",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "field-true",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "field-false",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "field-false": {
+      "main": [
+        [
+          {
+            "node": "Form-down",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "263e00f8-133c-48ec-832a-5fd06e72c591",
+  "meta": {
+    "instanceId": "50a75285f2663a13dc21cb3b01ceb9bdb4346cd3d56d2a8dcd93c2213bd84879"
+  },
+  "id": "oeWBceBg4cXiwd2U",
+  "tags": []
+}
