@@ -34,7 +34,7 @@
           ]
         },
         "options": {
-          "appendAttribution": false,
+          "appendAttribution": true,
           "path": "file-generator"
         }
       },
@@ -42,7 +42,7 @@
       "typeVersion": 2.3,
       "position": [
         0,
-        16
+        144
       ],
       "name": "On form submission",
       "id": "dd1f3fe4-811c-4a24-ab3c-efd5c53b7106",
@@ -55,11 +55,12 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        192,
-        16
+        224,
+        144
       ],
       "name": "Check-IP-format",
-      "id": "8c06dee0-03f1-4ceb-b918-64dfeb1b7785"
+      "id": "8c06dee0-03f1-4ceb-b918-64dfeb1b7785",
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -72,21 +73,21 @@
       "type": "n8n-nodes-base.convertToFile",
       "typeVersion": 1.1,
       "position": [
-        736,
-        16
+        896,
+        0
       ],
       "id": "4438faf7-0f02-4ffa-9275-708cf6e4fa1b",
       "name": "Convert to File"
     },
     {
       "parameters": {
-        "jsCode": "// Récupération des données du formulaire\nconst hostname = $json.hostname;\nconst IP_Address = $json.IP_Address;\nconst type = $json.switch_type;\n\n// Templates de configuration\nconst templates = {\n  access: `\nhostname {{hostname}}\n!\ninterface Vlan1\n ip address {{IP_Address}} 255.255.255.0\n no shutdown\n!\nspanning-tree portfast default\n!\n  `,\n  core: `\nhostname {{hostname}}\n!\ninterface Vlan10\n ip address {{IP_Address}} 255.255.255.0\n!\nip routing\n!\nrouter ospf 1\n network {{IP_Address}} 0.0.0.255 area 0\n!\n  `\n};\n\nreturn [\n  {\n    json: {\n      hostname,\n      IP_Address,\n      switch_type: type,\n      template: templates[type]\n    }\n  }\n];"
+        "jsCode": "// Correction pour le nœud \"template_config\" (ID: 6b9fbf44-eada-4e73-87a7-b3f82aa7f53d)\nconst originalData = $('On form submission').first().json; // Données du premier formulaire (hostname, switch_type)\nconst correctedIp = $json.IP_Address; // IP corrigée (vient du nœud précédent)\n\n// Si la propriété \"switch_type\" n'est pas dans les données actuelles, on la récupère depuis le formulaire initial\nconst type = $json.switch_type || originalData.switch_type; \nconst hostname = $json.hostname || originalData.hostname;\n\n// Templates de configuration\nconst templates = {\n\taccess: `\nhostname {{hostname}}\n!\ninterface Vlan1\n ip address {{IP_Address}} 255.255.255.0\n no shutdown\n!\nspanning-tree portfast default\n!\n\t`,\n\tcore: `\nhostname {{hostname}}\n!\ninterface Vlan10\n ip address {{IP_Address}} 255.255.255.0\n!\nip routing\n!\nrouter ospf 1\n network {{IP_Address}} 0.0.0.255 area 0\n!\n\t`\n};\n\nreturn [\n\t{\n\t\tjson: {\n\t\t\thostname,\n\t\t\tIP_Address: correctedIp,\n\t\t\tswitch_type: type,\n\t\t\ttemplate: templates[type]\n\t\t}\n\t}\n];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        368,
-        16
+        448,
+        0
       ],
       "id": "6b9fbf44-eada-4e73-87a7-b3f82aa7f53d",
       "name": "template_config"
@@ -98,8 +99,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        544,
-        16
+        672,
+        0
       ],
       "id": "5187f59f-7a8c-4999-9fb0-d2fe577aa2ed",
       "name": "generate_config"
@@ -109,17 +110,46 @@
         "operation": "completion",
         "respondWith": "returnBinary",
         "completionTitle": "file generated and downloaded on your folder \"downloads\"",
+        "limitWaitTime": true,
+        "resumeAmount": 0.2,
+        "resumeUnit": "minutes",
         "options": {}
       },
       "type": "n8n-nodes-base.form",
       "typeVersion": 2.3,
       "position": [
-        912,
-        16
+        1120,
+        0
       ],
       "id": "4f3c47b9-b3ba-47a6-b098-ecbfaba92cd6",
       "name": "Form",
-      "webhookId": "f62e3e09-30e6-4acd-8400-c24ec0cd607e"
+      "webhookId": "f62e3e09-30e6-4acd-8400-c24ec0cd607e",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "=IP_Address",
+              "placeholder": "192.168.1.2",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "formTitle": "Error on IP address format"
+        }
+      },
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        192
+      ],
+      "id": "0ebe7396-bd0b-4ffe-9c44-b2cd879a4a6b",
+      "name": "IP-error-form",
+      "webhookId": "66d5e238-9f29-492d-b271-71aebd14e121"
     }
   ],
   "pinData": {},
@@ -140,6 +170,13 @@
         [
           {
             "node": "template_config",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IP-error-form",
             "type": "main",
             "index": 0
           }
@@ -178,13 +215,24 @@
           }
         ]
       ]
+    },
+    "IP-error-form": {
+      "main": [
+        [
+          {
+            "node": "Check-IP-format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "e2be3a2c-e4ff-46b5-b7ca-403df2a34cf9",
+  "versionId": "9d339491-153c-472c-9f79-322b43541f73",
   "meta": {
     "instanceId": "50a75285f2663a13dc21cb3b01ceb9bdb4346cd3d56d2a8dcd93c2213bd84879"
   },
